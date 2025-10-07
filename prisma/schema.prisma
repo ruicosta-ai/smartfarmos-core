@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  passwordHash  String
+  name          String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  farms         UserFarm[]
+}
+
+model Farm {
+  id        String   @id @default(cuid())
+  name      String
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sensors   Sensor[]
+  users     UserFarm[]
+}
+
+model UserFarm {
+  userId String
+  farmId String
+  role   Role @default(WORKER)
+  user   User @relation(fields: [userId], references: [id])
+  farm   Farm @relation(fields: [farmId], references: [id])
+  @@id([userId, farmId])
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  WORKER
+  VIEWER
+}
+
+model Sensor {
+  id        String   @id @default(cuid())
+  farmId    String
+  farm      Farm     @relation(fields: [farmId], references: [id])
+  type      String
+  name      String
+  unit      String?
+  createdAt DateTime @default(now())
+  readings  Reading[]
+}
+
+model Reading {
+  id        String   @id @default(cuid())
+  sensorId  String
+  sensor    Sensor   @relation(fields: [sensorId], references: [id])
+  value     Float
+  ts        DateTime @default(now())
+}
