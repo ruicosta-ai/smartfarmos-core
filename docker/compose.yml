@@ -20,9 +20,7 @@ services:
       - ./mosquitto:/mosquitto/config
 
   core:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    image: ghcr.io/ruicosta-ai/smartfarmos-core:latest
     container_name: sfos-core
     environment:
       DATABASE_URL: postgresql://core:core@db:5432/sfos_core?schema=public
