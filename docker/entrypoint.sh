@@ -3,6 +3,10 @@ set -e
 
 echo "⏳ A iniciar SmartFarm Core..."
 
+# Gerar Prisma Client (necessário no runtime)
+echo "🧩 prisma generate"
+prisma generate || { echo "❌ prisma generate falhou"; exit 1; }
+
 # Aplicar migrations
 echo "🛠  prisma migrate deploy"
 prisma migrate deploy || { echo "❌ prisma migrate falhou"; exit 1; }
