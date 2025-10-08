@@ -28,8 +28,9 @@ jobs:
               systemctl enable --now docker
             fi
 
-            mkdir -p /root/sfos
-            cd /root/sfos
+            APP_DIR="$HOME/sfos"
+            mkdir -p "$APP_DIR/mosquitto"
+            cd "$APP_DIR"
 
             cat > .env << 'EOT'
             DATABASE_URL=postgresql://core:core@db:5432/sfos_core?schema=public
@@ -40,7 +41,6 @@ jobs:
             JWT_REFRESH_EXPIRES=7d
             EOT
 
-            mkdir -p mosquitto
             cat > mosquitto/mosquitto.conf << 'EOT'
             listener 1883
             allow_anonymous true
@@ -69,7 +69,6 @@ jobs:
                 container_name: sfos-mqtt
                 volumes:
                   - ./mosquitto:/mosquitto/config
-                # não expomos porta para fora; o core fala internamente
                 networks: [sfos-net]
                 restart: unless-stopped
 
@@ -88,7 +87,6 @@ jobs:
             EOT
 
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
-
             docker compose -f compose.yml pull
             docker compose -f compose.yml up -d
 
