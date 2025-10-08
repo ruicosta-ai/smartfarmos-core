@@ -26,4 +26,7 @@ export class MqttService implements OnModuleInit {
       );
     });
   }
+  isConnected(): boolean {
+    return !!this.client && (this.client as any).connected === true;
+  }
 }
