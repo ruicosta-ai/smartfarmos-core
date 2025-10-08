@@ -1,0 +1,36 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: SSH deploy to Hetzner
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            docker login ghcr.io -u ${{ secrets.GHCR_USER }} -p ${{ secrets.GHCR_PAT }}
+            docker pull ghcr.io/${{ secrets.GHCR_USER }}/smartfarmos-core:latest
+            docker stop sfos-core || true && docker rm sfos-core || true
+            docker stop sfos-db || true && docker rm sfos-db || true
+            docker stop sfos-mqtt || true && docker rm sfos-mqtt || true
+            docker network create sfos-net || true
+
+            docker run -d --name sfos-db --network sfos-net -e POSTGRES_DB=sfos_core -e POSTGRES_USER=core -e POSTGRES_PASSWORD=core postgres:16
+            docker run -d --name sfos-mqtt --network sfos-net -p 1883:1883 eclipse-mosquitto:2
+
+            docker run -d --name sfos-core --network sfos-net \
+              -e DATABASE_URL=postgresql://core:core@sfos-db:5432/sfos_core \
+              -e MQTT_URL=mqtt://sfos-mqtt:1883 \
+              -e JWT_ACCESS_SECRET='${{ secrets.JWT_ACCESS_SECRET }}' \
+              -e JWT_REFRESH_SECRET='${{ secrets.JWT_REFRESH_SECRET }}' \
+              -p 3000:3000 \
+              ghcr.io/${{ secrets.GHCR_USER }}/smartfarmos-core:latest
