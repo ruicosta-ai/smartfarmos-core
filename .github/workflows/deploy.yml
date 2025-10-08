@@ -41,10 +41,11 @@ jobs:
             JWT_REFRESH_EXPIRES=7d
             EOT
 
-            cat > mosquitto/mosquitto.conf << 'EOT'
-            listener 1883
-            allow_anonymous true
-            EOT
+# garantir que não há pastas antigas com permissões erradas
+rm -rf mosquitto
+mkdir -p mosquitto
+
+printf 'listener 1883\nallow_anonymous true\n' > mosquitto/mosquitto.conf
 
             cat > compose.yml << 'EOT'
             networks:
