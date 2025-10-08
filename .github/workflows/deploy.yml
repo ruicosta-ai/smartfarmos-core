@@ -1,4 +1,5 @@
 name: deploy
+
 on:
   workflow_dispatch:
 
@@ -12,84 +13,20 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          script_stop: true
           script: |
             set -euo pipefail
 
-            if ! command -v docker >/dev/null 2>&1; then
-              apt-get update -y
-              apt-get install -y ca-certificates curl gnupg
-              install -m 0755 -d /etc/apt/keyrings
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | tee /etc/apt/keyrings/docker.asc > /dev/null
-              chmod a+r /etc/apt/keyrings/docker.asc
-              . /etc/os-release
-              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" > /etc/apt/sources.list.d/docker.list
-              apt-get update -y
-              apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-              systemctl enable --now docker
-            fi
+            # ir para a pasta do stack
+            cd ~/sfos
 
-            APP_DIR="$HOME/sfos"
-            mkdir -p "$APP_DIR/mosquitto"
-            cd "$APP_DIR"
+            # login no GHCR (ignorar erro se já estiver autenticado)
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin || true
 
-            cat > .env << 'EOT'
-            DATABASE_URL=postgresql://core:core@db:5432/sfos_core?schema=public
-            MQTT_URL=mqtt://mqtt:1883
-            JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}
-            JWT_ACCESS_EXPIRES=15m
-            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
-            JWT_REFRESH_EXPIRES=7d
-            EOT
+            # atualizar imagens e subir serviços
+            docker compose pull
+            docker compose up -d
 
-# garantir que não há pastas antigas com permissões erradas
-rm -rf mosquitto
-mkdir -p mosquitto
-
-printf 'listener 1883\nallow_anonymous true\n' > mosquitto/mosquitto.conf
-
-            cat > compose.yml << 'EOT'
-            networks:
-              sfos-net:
-                driver: bridge
-
-            services:
-              db:
-                image: postgres:16
-                container_name: sfos-db
-                environment:
-                  POSTGRES_DB: sfos_core
-                  POSTGRES_USER: core
-                  POSTGRES_PASSWORD: core
-                volumes:
-                  - db_data:/var/lib/postgresql/data
-                networks: [sfos-net]
-                restart: unless-stopped
-
-              mqtt:
-                image: eclipse-mosquitto:2
-                container_name: sfos-mqtt
-                volumes:
-                  - ./mosquitto:/mosquitto/config
-                networks: [sfos-net]
-                restart: unless-stopped
-
-              core:
-                image: ghcr.io/${{ secrets.GHCR_USER }}/smartfarmos-core:latest
-                container_name: sfos-core
-                env_file: [.env]
-                depends_on: [db, mqtt]
-                ports:
-                  - "3000:3000"
-                networks: [sfos-net]
-                restart: unless-stopped
-
-            volumes:
-              db_data:
-            EOT
-
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
-            docker compose -f compose.yml pull
-            docker compose -f compose.yml up -d
-
-            sleep 3
+            # ver estado e health
+            docker ps
             curl -s http://localhost:3000/health || true
