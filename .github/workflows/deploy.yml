@@ -1,5 +1,4 @@
 name: deploy
-
 on:
   workflow_dispatch:
 
@@ -7,30 +6,91 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: SSH deploy to Hetzner
+      - name: SSH deploy (compose on server)
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            docker login ghcr.io -u ${{ secrets.GHCR_USER }} -p ${{ secrets.GHCR_PAT }}
-            docker pull ghcr.io/${{ secrets.GHCR_USER }}/smartfarmos-core:latest
-            docker stop sfos-core || true && docker rm sfos-core || true
-            docker stop sfos-db || true && docker rm sfos-db || true
-            docker stop sfos-mqtt || true && docker rm sfos-mqtt || true
-            docker network create sfos-net || true
+            set -euo pipefail
 
-            docker run -d --name sfos-db --network sfos-net -e POSTGRES_DB=sfos_core -e POSTGRES_USER=core -e POSTGRES_PASSWORD=core postgres:16
-            docker run -d --name sfos-mqtt --network sfos-net -p 1883:1883 eclipse-mosquitto:2
+            if ! command -v docker >/dev/null 2>&1; then
+              apt-get update -y
+              apt-get install -y ca-certificates curl gnupg
+              install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | tee /etc/apt/keyrings/docker.asc > /dev/null
+              chmod a+r /etc/apt/keyrings/docker.asc
+              . /etc/os-release
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" > /etc/apt/sources.list.d/docker.list
+              apt-get update -y
+              apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              systemctl enable --now docker
+            fi
 
-            docker run -d --name sfos-core --network sfos-net \
-              -e DATABASE_URL=postgresql://core:core@sfos-db:5432/sfos_core \
-              -e MQTT_URL=mqtt://sfos-mqtt:1883 \
-              -e JWT_ACCESS_SECRET='${{ secrets.JWT_ACCESS_SECRET }}' \
-              -e JWT_REFRESH_SECRET='${{ secrets.JWT_REFRESH_SECRET }}' \
-              -p 3000:3000 \
-              ghcr.io/${{ secrets.GHCR_USER }}/smartfarmos-core:latest
+            mkdir -p /root/sfos
+            cd /root/sfos
+
+            cat > .env << 'EOT'
+            DATABASE_URL=postgresql://core:core@db:5432/sfos_core?schema=public
+            MQTT_URL=mqtt://mqtt:1883
+            JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}
+            JWT_ACCESS_EXPIRES=15m
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            JWT_REFRESH_EXPIRES=7d
+            EOT
+
+            mkdir -p mosquitto
+            cat > mosquitto/mosquitto.conf << 'EOT'
+            listener 1883
+            allow_anonymous true
+            EOT
+
+            cat > compose.yml << 'EOT'
+            networks:
+              sfos-net:
+                driver: bridge
+
+            services:
+              db:
+                image: postgres:16
+                container_name: sfos-db
+                environment:
+                  POSTGRES_DB: sfos_core
+                  POSTGRES_USER: core
+                  POSTGRES_PASSWORD: core
+                volumes:
+                  - db_data:/var/lib/postgresql/data
+                networks: [sfos-net]
+                restart: unless-stopped
+
+              mqtt:
+                image: eclipse-mosquitto:2
+                container_name: sfos-mqtt
+                volumes:
+                  - ./mosquitto:/mosquitto/config
+                # não expomos porta para fora; o core fala internamente
+                networks: [sfos-net]
+                restart: unless-stopped
+
+              core:
+                image: ghcr.io/${{ secrets.GHCR_USER }}/smartfarmos-core:latest
+                container_name: sfos-core
+                env_file: [.env]
+                depends_on: [db, mqtt]
+                ports:
+                  - "3000:3000"
+                networks: [sfos-net]
+                restart: unless-stopped
+
+            volumes:
+              db_data:
+            EOT
+
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
+
+            docker compose -f compose.yml pull
+            docker compose -f compose.yml up -d
+
+            sleep 3
+            curl -s http://localhost:3000/health || true
