@@ -7,6 +7,7 @@ RUN npm ci
 # ===== builder =====
 FROM node:22-alpine AS builder
 WORKDIR /app
+COPY package*.json ./
 COPY --from=deps /app/node_modules ./node_modules
 # copiar apenas o necessário para build
 COPY tsconfig*.json nest-cli.json ./
