@@ -1,33 +1,42 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateReadingDto } from './dto/create-reading.dto';
 import { MqttService } from '../mqtt/mqtt.service';
 
 @Injectable()
 export class ReadingsService {
-  constructor(private readonly prisma: PrismaService, private readonly mqtt: MqttService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mqtt: MqttService,
+  ) {}
 
-  async createForUser(userFarmIds: string[], data: CreateReadingDto) {
-    const sensor = await this.prisma.sensor.findUnique({ where: { id: data.sensorId } });
-    if (!sensor || !userFarmIds.includes(sensor.farmId)) throw new ForbiddenException('No access to sensor');
+  async create(data: { sensorId: string; value: number }) {
     const reading = await this.prisma.reading.create({
-      data: { sensorId: data.sensorId, value: data.value, ts: data.ts as any },
+      data: {
+        sensorId: data.sensorId,
+        value: data.value,
+      },
     });
+
+    // Publicar no MQTT
     try {
-      const payload = JSON.stringify({ sensorId: reading.sensorId, value: reading.value, ts: reading.ts });
-      this.mqtt.publish(`sfos/sensors/${reading.sensorId}/reading`, payload);
-    } catch {}
+      const topic = `sfos/sensors/${data.sensorId}`;
+      const message = JSON.stringify({
+        sensorId: data.sensorId,
+        value: data.value,
+        ts: reading.ts,
+      });
+      await this.mqtt.publish(topic, message);
+      console.log(`[MQTT] publicado em ${topic}: ${message}`);
+    } catch (err) {
+      console.error('[MQTT] erro ao publicar:', err.message);
+    }
+
     return reading;
   }
 
-  async listForUser(userFarmIds: string[], sensorId?: string, limit = 50) {
-    if (sensorId) {
-      const s = await this.prisma.sensor.findUnique({ where: { id: sensorId }, select: { farmId: true } });
-      if (!s || !userFarmIds.includes(s.farmId)) throw new ForbiddenException('No access to sensor');
-      return this.prisma.reading.findMany({ where: { sensorId }, orderBy: { ts: 'desc' }, take: limit });
-    }
+  async findAllBySensor(sensorId: string, limit = 20) {
     return this.prisma.reading.findMany({
-      where: { sensor: { farmId: { in: userFarmIds.length ? userFarmIds : [''] } } },
+      where: { sensorId },
       orderBy: { ts: 'desc' },
       take: limit,
     });
