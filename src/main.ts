@@ -34,13 +34,16 @@ async function bootstrap() {
   await prismaService.enableShutdownHooks(app);
 
   // src/main.ts
-app.enableCors({
-  origin: [
-    'http://localhost:4000',
-    'https://app.smartfarmos.pt',
-  ],
-  credentials: true,
-});
+  app.enableCors({
+    origin: [
+      'https://app.smartfarmos.pt',
+      'https://smartfarmos.pt',
+      'http://localhost:4000'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
 
   // Validação global
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
