@@ -1,24 +1,19 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '@nestjs/config';
+
 import { NucsService } from './nucs.service';
 import { NucsController } from './nucs.controller';
-import { PrismaService } from '../prisma/prisma.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [
-    ConfigModule,
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (cfg: ConfigService) => ({
-        secret: cfg.get<string>('AGENT_JWT_SECRET'),
-        signOptions: { expiresIn: cfg.get<string>('AGENT_JWT_EXPIRES') || '7d' },
-      }),
-    }),
+    PrismaModule,
+    JwtModule.register({}), // para injetar JwtService
+    ConfigModule,           // para ConfigService
   ],
   controllers: [NucsController],
-  providers: [NucsService, PrismaService],
+  providers: [NucsService],
   exports: [NucsService],
 })
 export class NucsModule {}

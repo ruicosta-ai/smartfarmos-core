@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -13,9 +13,9 @@ function random6() {
 @Injectable()
 export class NucsService {
   constructor(
-    private prisma: PrismaService,
-    private cfg: ConfigService,
-    private jwt: JwtService,
+    private readonly prisma: PrismaService,
+    private readonly cfg: ConfigService,
+    private readonly jwt: JwtService,
   ) {}
 
   async generateClaimCode(farmId: string) {
