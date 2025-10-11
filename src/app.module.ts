@@ -8,10 +8,19 @@ import { SensorsModule } from './sensors/sensors.module';
 import { ReadingsModule } from './readings/readings.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { NucsModule } from './nucs/nucs.module';
 
 @Module({
   imports: [ConfigModule, PrismaModule, MqttModule, FarmsModule, SensorsModule, ReadingsModule, UsersModule, AuthModule],
   controllers: [HealthController],
   providers: [],
+})
+export class AppModule {}
+
+@Module({
+  imports: [
+    // outros módulos...
+    NucsModule,
+  ],
 })
 export class AppModule {}
