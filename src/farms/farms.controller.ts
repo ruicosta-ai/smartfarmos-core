@@ -1,12 +1,11 @@
 import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, Delete } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { Request } from 'express';
-
 import { FarmsService } from './farms.service';
 import { CreateFarmDto } from './dto/create-farm.dto';
 import { UsersService } from '../users/users.service';
 
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAuthGuard)
 @Controller('farms')
 export class FarmsController {
   constructor(
@@ -22,14 +21,12 @@ export class FarmsController {
   ) {
     const userId = req.user.sub;
     const farmIds = await this.users.getUserFarmIds(userId);
-
     const page = Math.max(parseInt(pageRaw || '1', 10), 1);
     const limit = Math.min(Math.max(parseInt(limitRaw || '20', 10), 1), 100);
     const skip = (page - 1) * limit;
-
     const data = await this.farms.listForUserPaged(farmIds, skip, limit);
     const total = await this.farms.countForUser(farmIds);
-    return { page, limit, total, data };
+    return { page, limit, total, data, totalPages: Math.ceil(total / limit) };
   }
 
   @Post()
@@ -47,7 +44,7 @@ export class FarmsController {
     @Param('id') farmId: string,
   ) {
     const userId = req.user.sub;
-    return this.farms.addMember(farmId, userId, 'OWNER');
+    return this.farms.addMember(farmId, userId, 'MANAGER');
   }
 
   @Delete(':id')

@@ -1,7 +1,8 @@
 services:
   db:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: sfos-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: sfos_core
       POSTGRES_USER: core
@@ -10,30 +11,57 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U core -d sfos_core"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   mqtt:
     image: eclipse-mosquitto:2
     container_name: sfos-mqtt
+    restart: unless-stopped
     ports:
       - "1883:1883"
     volumes:
       - ./mosquitto:/mosquitto/config
+      - mqtt_data:/mosquitto/data
+      - mqtt_log:/mosquitto/log
+    healthcheck:
+      # mosquitto_sub existe na imagem oficial
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/#' -C 1 -W 3 > /dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   core:
     image: ghcr.io/ruicosta-ai/smartfarmos-core:latest
+    # platform: linux/amd64   # descomenta se precisares no teu host/runner
     container_name: sfos-core
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://core:core@db:5432/sfos_core?schema=public
-      MQTT_URL: mqtt://mqtt:1883
+      MQTT_URL: ${MQTT_URL}
       JWT_ACCESS_SECRET: dev_access_secret
       JWT_ACCESS_EXPIRES: 15m
       JWT_REFRESH_SECRET: dev_refresh_secret
       JWT_REFRESH_EXPIRES: 7d
+      WEATHER_WU_API_KEY: ${WEATHER_WU_API_KEY}
+      CORS_ORIGINS: http://localhost:4000
+      NODE_ENV: development
     depends_on:
-      - db
-      - mqtt
+      db:
+        condition: service_healthy
     ports:
       - "3000:3000"
+    healthcheck:
+      # tenta curl; se não existir, tenta wget
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:3000/health || wget -qO- http://127.0.0.1:3000/health | grep -q '\"db\":\"up\"'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
 volumes:
   db_data:
+  mqtt_data:
+  mqtt_log:
