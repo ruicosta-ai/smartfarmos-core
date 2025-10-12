@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # compiled output
 /dist
 /node_modules
@@ -56,3 +57,41 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+=======
+# macOS
+.DS_Store
+
+# Node / TypeScript
+node_modules/
+dist/
+build/
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env & secrets
+.env
+.env.*
+core/.env
+core/docker/.env
+services/**/.env
+
+# Docker
+docker-data/
+**/data/
+**/logs/
+**/tmp/
+**/.cache/
+**/.vscode/
+**/.idea/
+
+# Prisma
+.prisma/
+
+# Misc
+*.swp
+*.swo
+core/
+>>>>>>> a014488 (chore(repo): ignore internal core repository)
