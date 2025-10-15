@@ -39,14 +39,9 @@ services:
     # platform: linux/amd64   # descomenta se precisares no teu host/runner
     container_name: sfos-core
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
-      DATABASE_URL: postgresql://core:core@db:5432/sfos_core?schema=public
-      MQTT_URL: ${MQTT_URL:-mqtt://mqtt:1883}
-      JWT_ACCESS_SECRET: dev_access_secret
-      JWT_ACCESS_EXPIRES: 15m
-      JWT_REFRESH_SECRET: dev_refresh_secret
-      JWT_REFRESH_EXPIRES: 7d
-      WEATHER_WU_API_KEY: ${WEATHER_WU_API_KEY}
       CORS_ORIGINS: http://localhost:4000
       NODE_ENV: development
     depends_on:

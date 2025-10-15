@@ -8,7 +8,6 @@ import { SensorsModule } from './sensors/sensors.module';
 import { ReadingsModule } from './readings/readings.module';
 import { MqttModule } from './mqtt/mqtt.module';
 import { NucsModule } from './nucs/nucs.module';
-import { WeatherModule } from './weather/weather.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -22,7 +21,6 @@ import { HealthController } from './health/health.controller';
     ReadingsModule,
     MqttModule,
     NucsModule,
-    WeatherModule, // ensure weather routes are registered
   ],
   controllers: [HealthController],
 })
