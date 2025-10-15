@@ -1,84 +1,33 @@
-<<<<<<< HEAD
-# compiled output
-/dist
-/node_modules
-/build
-
-# Logs
-logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# OS
-.DS_Store
-
-# Tests
-/coverage
-/.nyc_output
-
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# temp directory
-.temp
-.tmp
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-/generated/prisma
-=======
-# macOS
-.DS_Store
-
-# Node / TypeScript
+# ──────────────────────────────
+#  BUILD / NODE / TYPESCRIPT
+# ──────────────────────────────
 node_modules/
 dist/
 build/
 coverage/
+.next/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Env & secrets
+# ──────────────────────────────
+#  ENVIRONMENT FILES
+# ──────────────────────────────
 .env
-.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 core/.env
 core/docker/.env
 services/**/.env
 
-# Docker
+# ──────────────────────────────
+#  DOCKER / RUNTIME DATA
+# ──────────────────────────────
 docker-data/
 **/data/
 **/logs/
@@ -87,11 +36,51 @@ docker-data/
 **/.vscode/
 **/.idea/
 
-# Prisma
+# ──────────────────────────────
+#  DATABASE / PRISMA
+# ──────────────────────────────
+prisma/dev.db
+prisma/dev.db-journal
 .prisma/
 
-# Misc
-*.swp
-*.swo
+# ──────────────────────────────
+#  TESTS / TEMP
+# ──────────────────────────────
+*.spec.ts
+*.spec.js
+.temp
+.tmp
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ──────────────────────────────
+#  OS & EDITORS
+# ──────────────────────────────
+.DS_Store
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# ──────────────────────────────
+#  ARCHIVES / LOCAL DUMPS
+# ──────────────────────────────
+_archive.*
+wu_*.json
+wu_*.ndjson
 core/
->>>>>>> a014488 (chore(repo): ignore internal core repository)
+
+# ──────────────────────────────
+#  REPORTS / DIAGNOSTICS
+# ──────────────────────────────
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
