@@ -63,3 +63,5 @@ wu_*.ndjson
 
 # Env
 .env
+
+core/

@@ -22,7 +22,7 @@ services:
     container_name: sfos-mqtt
     restart: unless-stopped
     ports:
-      - "1883:1883"
+      - "${MQTT_PUBLISHED_PORT:-1884:1883}"
     volumes:
       - ./mosquitto:/mosquitto/config
       - mqtt_data:/mosquitto/data
@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://core:core@db:5432/sfos_core?schema=public
-      MQTT_URL: ${MQTT_URL}
+      MQTT_URL: ${MQTT_URL:-mqtt://mqtt:1883}
       JWT_ACCESS_SECRET: dev_access_secret
       JWT_ACCESS_EXPIRES: 15m
       JWT_REFRESH_SECRET: dev_refresh_secret
@@ -51,6 +51,8 @@ services:
       NODE_ENV: development
     depends_on:
       db:
+        condition: service_healthy
+      mqtt:
         condition: service_healthy
     ports:
       - "3000:3000"
