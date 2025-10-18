@@ -5,6 +5,8 @@ import { ConfigModule } from '@nestjs/config';
 import { NucsService } from './nucs.service';
 import { NucsController } from './nucs.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { IntegrationsController, IntegrationsAgentController } from './integrations.controller';
+import { IntegrationsService } from './integrations.service';
 
 @Module({
   imports: [
@@ -12,8 +14,8 @@ import { PrismaModule } from '../prisma/prisma.module';
     JwtModule.register({}), // para injetar JwtService
     ConfigModule,           // para ConfigService
   ],
-  controllers: [NucsController],
-  providers: [NucsService],
+  controllers: [NucsController, IntegrationsController, IntegrationsAgentController],
+  providers: [NucsService, IntegrationsService],
   exports: [NucsService],
 })
 export class NucsModule {}

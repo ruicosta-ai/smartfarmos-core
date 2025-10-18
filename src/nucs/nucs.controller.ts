@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -21,6 +22,7 @@ export class NucsController {
   constructor(
     private readonly nucs: NucsService,
     private readonly jwt: JwtService,
+    private readonly cfg: ConfigService,
   ) {}
 
   // Utilizador autenticado gera claim code para uma farm
@@ -61,7 +63,13 @@ export class NucsController {
     const [, token] = auth.split(' ');
     if (!token) throw new UnauthorizedException('Agent token em falta');
 
-    const payload = await this.jwt.verifyAsync(token).catch(() => null);
+    const agentSecret =
+      this.cfg.get<string>('AGENT_JWT_SECRET') ||
+      process.env.AGENT_JWT_SECRET ||
+      process.env.JWT_ACCESS_SECRET ||
+      'dev_agent_secret';
+
+    const payload = await this.jwt.verifyAsync(token, { secret: agentSecret }).catch(() => null);
     if (!payload || (payload as any).type !== 'agent' || (payload as any).sub !== nucId) {
       throw new UnauthorizedException('Agent token inválido');
     }

@@ -16,13 +16,16 @@ function getCorsOrigins() {
   if (env.length) return env;
 
   return [
-    'http://localhost:3000',  // Next/Vite default
-    'http://localhost:4000',  // teu Next em dev
-    'http://localhost:8081',  // ToolJet
-    'http://localhost:5173',  // Vite
-    'http://192.168.1.234:4000', // teu IP LAN visto no terminal
+    'http://localhost:3001',       // Next dev atual
+    'http://localhost:4000',       // Next antigo (se usado)
+    'http://localhost:3000',       // Vite/Next default
+    'http://localhost:8081',       // ToolJet
+    'http://localhost:5173',       // Vite
+    'http://192.168.1.66:3001',    // IP LAN visto no terminal
+    'http://192.168.1.234:4000',
     'http://192.168.10.169:4000',
-    'https://smartfarmos.pt',
+    'https://app.smartfarmos.pt',  // app web prod
+    'https://smartfarmos.pt',      // site
   ];
 }
 
@@ -33,16 +36,20 @@ async function bootstrap() {
   const prismaService = app.get(PrismaService);
   await prismaService.enableShutdownHooks(app);
 
-  // src/main.ts
+  // CORS — permitir localhost em dev e os domínios da app em produção
+  const allowedOrigins = getCorsOrigins();
   app.enableCors({
-    origin: [
-      'https://app.smartfarmos.pt',
-      'https://smartfarmos.pt',
-      'http://localhost:4000'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    origin: (origin, callback) => {
+      // Permitir chamadas server-side (sem Origin) e whitelistar browsers
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS blocked for Origin: ${origin}`), false);
+    },
     credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Authorization',
+    exposedHeaders: 'Content-Length,Content-Type,ETag',
+    optionsSuccessStatus: 204,
   });
 
   // Validação global

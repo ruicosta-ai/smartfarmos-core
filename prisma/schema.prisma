@@ -21,6 +21,21 @@ enum WeatherProvider {
   WU
 }
 
+enum IntegrationKind {
+  WUNDERGROUND
+  // FUTURO: MODBUS_RTU
+  // FUTURO: MODBUS_TCP
+  // FUTURO: ZIGBEE
+  // FUTURO: MQTT_BRIDGE
+}
+
+enum IntegrationStatus {
+  DISABLED
+  PENDING
+  RUNNING
+  ERROR
+}
+
 model Farm {
   id        String   @id @default(cuid())
   name      String
@@ -34,19 +49,20 @@ model Farm {
 
   sensors Sensor[]
   users   UserFarm[]
-  nucs    Nuc[]
+  nuc     Nuc?    @relation("FarmNuc")
 }
 
 model Nuc {
   id     String  @id @default(cuid())
   farmId String?
-  farm   Farm?   @relation(fields: [farmId], references: [id])
+  farm   Farm?   @relation("FarmNuc", fields: [farmId], references: [id])
 
   name          String?
   status        String    @default("offline") // "online" | "offline"
   lastHeartbeat DateTime?
   agentVersion  String?
   endpoint      String?
+  integrations NucIntegration[]
 
   // Claim code (guardado com hash + expiração)
   claimCodeHash      String?
@@ -56,7 +72,7 @@ model Nuc {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([farmId])
+  @@unique([farmId])
 }
 
 model UserFarm {
@@ -93,4 +109,27 @@ model Reading {
   sensor   Sensor   @relation(fields: [sensorId], references: [id])
   value    Float
   ts       DateTime @default(now())
+}
+
+model NucIntegration {
+  id        String             @id @default(cuid())
+  nucId     String
+  nuc       Nuc                @relation(fields: [nucId], references: [id])
+
+  kind      IntegrationKind
+  name      String?
+
+  // Configuração pública (não sensível)
+  config    Json?
+  // Segredos (API keys, passwords) — guardar cifrado na app
+  secrets   Json?
+
+  status    IntegrationStatus  @default(DISABLED)
+  lastSync  DateTime?
+  lastError String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nucId])
 }

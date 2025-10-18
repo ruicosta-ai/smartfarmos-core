@@ -1,0 +1,1 @@
+{"id":"cmgwbksus0001muldna7khdm8","nucId":"cmgw0vnb50003lhpse99gruel","kind":"WUNDERGROUND","name":"Estação Meteo Casa","config":{"stationId":"ILISBOA123","intervalSec":60},"secrets":{"apiKey":"WU_DEMO_KEY"},"status":"DISABLED","lastSync":null,"lastError":null,"createdAt":"2025-10-18T13:34:51.412Z","updatedAt":"2025-10-18T13:34:51.412Z"}
